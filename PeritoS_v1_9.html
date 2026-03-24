@@ -5101,7 +5101,6 @@ Para cada visita indica: orden, dirección, hora estimada de llegada y de salida
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             ${s.telefono ? `<a href="tel:${s.telefono.split("/")[0].trim()}" onclick="event.stopPropagation()" class="mbtn mbtn-primary">📞 Llamar</a>` : ""}
             ${s.telefono ? `<button onclick="event.stopPropagation();mWhatsApp('${s.id}')" class="mbtn mbtn-good">💬 WhatsApp</button>` : ""}
-            ${!yaVisitado ? `<button onclick="event.stopPropagation();mVisitaRealizada('${s.id}')" class="mbtn mbtn-warn">✅ Visita OK</button>` : ""}
           </div>
         </div>`;
       });
@@ -5142,10 +5141,9 @@ Para cada visita indica: orden, dirección, hora estimada de llegada y de salida
         </div>
         <span style="font-size:11px;padding:3px 8px;border-radius:8px;border:1px solid var(--line);color:var(--muted);height:fit-content;flex-shrink:0;margin-left:8px">${formatEstado(s.estado)}</span>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${telPrincipal ? `<a href="tel:${telPrincipal}" onclick="event.stopPropagation()" class="mbtn mbtn-primary" style="font-size:13px;padding:8px 12px">📞</a>` : ""}
-        ${telPrincipal ? `<button onclick="event.stopPropagation();mWhatsApp('${s.id}')" class="mbtn mbtn-good" style="font-size:13px;padding:8px 12px">💬</button>` : ""}
-        <button onclick="event.stopPropagation();mContactoRapido('${s.id}')" class="mbtn" style="font-size:13px;padding:8px 12px">✓ Contacto</button>
+      <div style="display:flex;gap:8px">
+        ${telPrincipal ? `<a href="tel:${telPrincipal}" onclick="event.stopPropagation()" class="mbtn mbtn-primary" style="font-size:13px;padding:8px 12px">📞 Llamar</a>` : ""}
+        ${telPrincipal ? `<button onclick="event.stopPropagation();mWhatsApp('${s.id}')" class="mbtn mbtn-good" style="font-size:13px;padding:8px 12px">💬 WhatsApp</button>` : ""}
       </div>
     </div>`;
   };
@@ -5204,7 +5202,6 @@ Para cada visita indica: orden, dirección, hora estimada de llegada y de salida
         </div>
         <div style="display:flex;gap:8px">
           ${s.telefono?`<a href="tel:${s.telefono.split("/")[0].trim()}" onclick="event.stopPropagation()" class="mbtn mbtn-primary" style="font-size:13px;padding:8px 12px">📞 Llamar</a>`:""}
-          ${!yaVisitado?`<button onclick="event.stopPropagation();mVisitaRealizada('${s.id}')" class="mbtn mbtn-warn" style="font-size:13px;padding:8px 12px">✅ Visita OK</button>`:""}
         </div>
       </div>`;
     });
@@ -5215,25 +5212,57 @@ Para cada visita indica: orden, dirección, hora estimada de llegada y de salida
   const mRenderMas = () => {
     document.getElementById("mContent").innerHTML = `
       <div style="display:flex;flex-direction:column;gap:10px;padding-top:4px">
-        <button class="mcard" onclick="mMostrar('hoy')" style="text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px">
-          <span style="font-size:28px">🎯</span><div><div style="font-weight:600">Hoy</div><div style="font-size:12px;color:var(--muted)">Citas y urgentes del día</div></div>
-        </button>
+
         <button class="mcard" onclick="renderCalendario();openModal('#modalCal')" style="text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px">
-          <span style="font-size:28px">📅</span><div><div style="font-weight:600">Calendario completo</div><div style="font-size:12px;color:var(--muted)">Todas las citas</div></div>
+          <span style="font-size:28px">📅</span>
+          <div><div style="font-weight:600">Calendario completo</div><div style="font-size:12px;color:var(--muted)">Todas las citas próximas</div></div>
         </button>
-        <button class="mcard" onclick="renderFacturacion();poblarPrevCias();openModal('#modalFacturacion')" style="text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px">
-          <span style="font-size:28px">💰</span><div><div style="font-weight:600">Facturación</div><div style="font-size:12px;color:var(--muted)">Facturar cerrados, previsión</div></div>
+
+        <button class="mcard" onclick="_rutasExcluidos.clear();poblarRutaCias();renderRutas();openModal('#modalRutas')" style="text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px">
+          <span style="font-size:28px">🗺️</span>
+          <div><div style="font-weight:600">Ruta visitas</div><div style="font-size:12px;color:var(--muted)">Planificador presenciales</div></div>
         </button>
-        <button class="mcard" onclick="openModal('#modalImport')" style="text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px">
-          <span style="font-size:28px">📨</span><div><div style="font-weight:600">Importar encargo</div><div style="font-size:12px;color:var(--muted)">Pegar mail de MARBATAX/ALFA</div></div>
+
+        <button class="mcard" onclick="openModal('#modalAvisos');renderAvisosGlobal()" style="text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px">
+          <span style="font-size:28px">🔔</span>
+          <div><div style="font-weight:600">Avisos</div><div style="font-size:12px;color:var(--muted)">Recordatorios pendientes</div></div>
         </button>
-        <button class="mcard" onclick="backup()" style="text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px">
-          <span style="font-size:28px">💾</span><div><div style="font-weight:600">Backup</div><div style="font-size:12px;color:var(--muted)">Guardar en iCloud Drive</div></div>
-        </button>
-        <button class="mcard" onclick="document.getElementById('restoreFile').click()" style="text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px">
-          <span style="font-size:28px">📂</span><div><div style="font-weight:600">Restaurar backup</div><div style="font-size:12px;color:var(--muted)">Cargar desde iCloud Drive</div></div>
-        </button>
+
+        <div class="mcard" style="border-color:rgba(122,162,255,.3)">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <span style="font-size:28px">📂</span>
+            <div>
+              <div style="font-weight:600">Cargar datos desde Mac</div>
+              <div style="font-size:12px;color:var(--muted)">Pega el contenido del backup .json</div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);background:rgba(255,255,255,.03);padding:10px;border-radius:8px;margin-bottom:10px;line-height:1.7">
+            En el Mac: abre el backup .json con <b style="color:var(--text)">TextEdit</b> → <b style="color:var(--text)">Cmd+A</b> → <b style="color:var(--text)">Cmd+C</b> → vuelve aquí y pega abajo
+          </div>
+          <textarea id="mRestoreTexto" placeholder='{"version":1,"siniestros":[...' style="width:100%;min-height:80px;padding:10px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--text);border-radius:10px;font-size:12px;font-family:monospace;margin-bottom:8px;box-sizing:border-box"></textarea>
+          <button class="mbtn mbtn-primary" onclick="mRestaurarDesdeTexto()" style="width:100%;font-size:15px;padding:14px">📋 Cargar datos</button>
+        </div>
+
       </div>`;
+  };
+
+  window.mRestaurarDesdeTexto = () => {
+    const txt = document.getElementById("mRestoreTexto")?.value?.trim();
+    if(!txt) return toast("⚠️ Pega primero el contenido del backup");
+    try {
+      const d = JSON.parse(txt);
+      if(!d || !Array.isArray(d.siniestros)) throw new Error("Formato no válido");
+      if(d._ajustes){ guardarAjustes(d._ajustes); ajustes=d._ajustes; delete d._ajustes; }
+      data = {version:1, ...d};
+      data.siniestros = data.siniestros.map(s=>({...defaults(),...s,id:s.id||uid(),eventos:Array.isArray(s.eventos)?s.eventos:[]}));
+      if(!Array.isArray(data.facturas)) data.facturas=[];
+      save(); renderCias(); renderTabla(); updateCounts(); mActualizarBadge();
+      document.getElementById("mRestoreTexto").value="";
+      mMostrar("hoy");
+      toast("✓ Datos cargados — " + data.siniestros.length + " encargos");
+    } catch(e) {
+      toast("⚠️ Error: " + (e.message||"formato no válido"), "err");
+    }
   };
 
   // Navegar entre vistas
@@ -5283,19 +5312,14 @@ Para cada visita indica: orden, dirección, hora estimada de llegada y de salida
         </div>
       </div>`:""}
 
-      <div style="margin-bottom:16px">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase">ACCIONES RÁPIDAS</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          ${!yaVisitado?`<button class="mbtn mbtn-good" onclick="mRegistrarContactoOK('${s.id}')" style="width:100%;font-size:15px;padding:14px">✅ Contacto OK</button>`:""}
-          ${!yaVisitado?`<button class="mbtn mbtn-danger" onclick="mRegistrarContactoFallido('${s.id}')" style="width:100%;font-size:15px;padding:14px">❌ Contacto fallido</button>`:""}
-          ${!yaVisitado?`<button class="mbtn mbtn-warn" onclick="mVisitaRealizada('${s.id}')" style="width:100%;font-size:15px;padding:14px">🏠 Visita realizada → Pdte. Informe</button>`:""}
-          <button class="mbtn" onclick="mCerrarSheet();abrirDetalle('${s.id}')" style="width:100%;font-size:14px;padding:12px">✏️ Ver/editar detalle completo</button>
-        </div>
-      </div>
-
-      ${s.observaciones?`<div style="padding:12px;background:rgba(255,255,255,.03);border-radius:12px;border:1px solid var(--line);font-size:13px;color:var(--muted)">
+      ${s.observaciones?`<div style="padding:12px;background:rgba(255,255,255,.03);border-radius:12px;border:1px solid var(--line);font-size:13px;color:var(--muted);margin-bottom:12px">
         <div style="font-weight:600;color:var(--text);margin-bottom:6px">📄 Observaciones</div>
         ${safe(s.observaciones)}
+      </div>`:""}
+
+      ${(s.avisos||[]).filter(a=>!a.hecho).length ? `<div style="padding:12px;background:rgba(255,204,102,.06);border-radius:12px;border:1px solid rgba(255,204,102,.25);font-size:13px">
+        <div style="font-weight:600;color:var(--warn);margin-bottom:6px">🔔 Avisos pendientes</div>
+        ${(s.avisos||[]).filter(a=>!a.hecho).map(a=>`<div style="margin-bottom:4px">${a.prioridad==="urgente"?"🔴":"🟡"} ${safe(a.texto)}</div>`).join("")}
       </div>`:""}
     `;
     sheet.classList.add("open");
