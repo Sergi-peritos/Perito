@@ -560,7 +560,7 @@
 (() => {
   // ========= GOOGLE DRIVE CONFIG =========
   // ⚠️ IMPORTANTE: Reemplaza esto con tu Client ID de Google Cloud
-  const GOOGLE_CLIENT_ID = 'TU_CLIENT_ID_AQUI.apps.googleusercontent.com';
+  const GOOGLE_CLIENT_ID = '247742349843-6hmsl5fu6h0hdi8i1lmqa95coq40ramq.apps.googleusercontent.com';
   const GOOGLE_API_KEY = ''; // Opcional, no necesario para Drive con OAuth
   const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
   const SCOPES = 'https://www.googleapis.com/auth/drive.file';
@@ -4701,7 +4701,7 @@ function estadoClass(e){
   const poblarRutaCias = () => {
     const cont = $("#rutaCiaSel");
     if(!cont) return;
-    const pendP = data.siniestros.filter(s => s.estado==="PENDIENTE" && (s.tipo||"P")==="P");
+    const pendP = data.siniestros.filter(s => ["PENDIENTE","EN_CURSO","CTO_FALLIDO"].includes(s.estado) && (s.tipo||"P")==="P");
     const cias = [...new Set(pendP.map(s => normCia(s.cia)).filter(Boolean))].sort();
     cont.innerHTML = cias.map(c => {
       const checked = c !== "Allianz" ? "checked" : "";
@@ -4728,18 +4728,27 @@ function estadoClass(e){
       return;
     }
 
-    // Filtrar encargos PENDIENTE tipo P de las compañías seleccionadas, excluyendo quitados
+    // Filtrar encargos presenciales activos (PENDIENTE, EN_CURSO, CTO_FALLIDO) de las compañías seleccionadas, excluyendo quitados
+    const ESTADOS_RUTA = ["PENDIENTE","EN_CURSO","CTO_FALLIDO"];
     const encargos = data.siniestros.filter(s =>
-      s.estado === "PENDIENTE" &&
+      ESTADOS_RUTA.includes(s.estado) &&
       (s.tipo||"P") === "P" &&
       ciasSeleccionadas.includes(normCia(s.cia)) &&
-      !_rutasExcluidos.has(s.id)
-    ).sort((a,b) => (a.poblacion||"").localeCompare(b.poblacion||""));
+      !_rutasExcluidos.has(s.id) &&
+      !s.cita &&  // excluir los que ya tienen cita concertada
+      !(s.eventos||[]).some(e => String(e.tipo||"").toUpperCase()==="CITA") // excluir si tiene evento de cita
+    ).sort((a,b) => {
+      // Ordenar: CTO_FALLIDO primero (más urgentes), luego PENDIENTE, luego EN_CURSO, todo por población
+      const ord = {CTO_FALLIDO:0, PENDIENTE:1, EN_CURSO:2};
+      const oa = ord[a.estado]??3, ob = ord[b.estado]??3;
+      if(oa !== ob) return oa - ob;
+      return (a.poblacion||"").localeCompare(b.poblacion||"");
+    });
 
     if(!encargos.length) {
       root.innerHTML = `<div style="padding:40px;text-align:center;color:var(--muted)">
         <div style="font-size:36px;margin-bottom:10px">🗺️</div>
-        <div>No hay encargos pendientes presenciales con estos filtros</div>
+        <div>No hay encargos presenciales activos con estos filtros</div>
       </div>`;
       return;
     }
@@ -4760,7 +4769,13 @@ function estadoClass(e){
       const dir = [s.direccion||s.riesgo||"", s.cp||"", s.poblacion||""].filter(Boolean).join(", ");
       const tels = (s.telefono||s.tel||"").split("/").map(t=>t.trim()).filter(Boolean);
       const telHTML = tels.map(t => `<a href="tel:${t}" style="color:var(--accent);font-size:12px">${t}</a>`).join(" / ");
-      return { s, i: i+1, horaLlegada, horaSalida: horaSalida2, dir, telHTML };
+      // Badge de estado con color
+      const estadoBadge = (() => {
+        if(s.estado==="CTO_FALLIDO") return `<span style="font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(255,107,107,.15);border:1px solid rgba(255,107,107,.3);color:#ff6b6b;white-space:nowrap">📵 Sin respuesta</span>`;
+        if(s.estado==="EN_CURSO")    return `<span style="font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(122,162,255,.15);border:1px solid rgba(122,162,255,.3);color:var(--accent);white-space:nowrap">📞 Contactado</span>`;
+        return `<span style="font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(255,204,102,.1);border:1px solid rgba(255,204,102,.3);color:var(--warn);white-space:nowrap">🆕 Nuevo</span>`;
+      })();
+      return { s, i: i+1, horaLlegada, horaSalida: horaSalida2, dir, telHTML, estadoBadge };
     });
 
     // Texto para copiar en IA
@@ -4816,6 +4831,7 @@ Para cada visita indica: orden, dirección, hora estimada de llegada y de salida
               <div style="font-size:12px;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
                 <span style="background:rgba(255,255,255,.05);padding:1px 8px;border-radius:999px;font-size:11px">${safe(normCia(f.s.cia))}</span>
                 <span style="color:var(--muted);font-family:monospace;font-size:11px">${safe(f.s.siniestro||f.s.ref||"")}</span>
+                ${f.estadoBadge}
                 ${f.telHTML}
               </div>
             </div>
